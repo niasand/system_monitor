@@ -1,21 +1,14 @@
-mod collector;
-mod cpu_analyzer;
-mod memory_analyzer;
-mod models;
-mod renderer;
-mod script_detector;
-mod zombie_detector;
-
 use std::time::Duration;
 
 use clap::Parser;
-use collector::ProcessCollector;
-use cpu_analyzer::CpuAnalyzer;
-use memory_analyzer::MemoryAnalyzer;
-use models::MonitorOutput;
-use renderer::Renderer;
-use script_detector::ScriptDetector;
-use zombie_detector::ZombieDetector;
+use system_monitor::collector::ProcessCollector;
+use system_monitor::cpu_analyzer::CpuAnalyzer;
+use system_monitor::memory_analyzer::MemoryAnalyzer;
+use system_monitor::models::MonitorOutput;
+use system_monitor::renderer::Renderer;
+use system_monitor::script_detector::ScriptDetector;
+use system_monitor::zombie_detector::ZombieDetector;
+use system_monitor::collector;
 
 #[derive(Parser)]
 #[command(name = "system_monitor", about = "macOS system resource monitor")]
