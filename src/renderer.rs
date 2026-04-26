@@ -43,6 +43,8 @@ impl Renderer {
         lines.push(header);
         lines.push("─".repeat(72));
 
+        let cpu_line = format_bar("CPU   ", s.cpu_usage_percent, &format!("{:.1}%", s.cpu_usage_percent));
+
         let mem_used = MemoryAnalyzer::format_bytes(s.used_memory_bytes);
         let mem_total = MemoryAnalyzer::format_bytes(s.total_memory_bytes);
         let mem_pct = if s.total_memory_bytes > 0 {
@@ -62,6 +64,7 @@ impl Renderer {
         };
         let swap_line = format_bar("Swap  ", swap_pct, &format!("{swap_used} / {swap_total}"));
 
+        lines.push(cpu_line);
         lines.push(mem_line);
         lines.push(swap_line);
     }

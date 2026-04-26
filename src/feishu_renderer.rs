@@ -58,7 +58,7 @@ fn process_table(
     if is_cpu {
         lines.push("PID | USER | %CPU | MEM | NAME".to_string());
     } else {
-        lines.push("PID | USER | MEM | NAME".to_string());
+        lines.push("PID | USER | NAME".to_string());
     }
 
     for p in processes {
@@ -67,7 +67,7 @@ fn process_table(
         if is_cpu {
             lines.push(format!("{} | {} | {:.1}% | {} | {}", p.pid, p.user, p.cpu_percent, mem, name));
         } else {
-            lines.push(format!("{} | {} | {} | {}", p.pid, p.user, mem, name));
+            lines.push(format!("{} | {} | {}", p.pid, p.user, name));
         }
     }
 
@@ -146,10 +146,14 @@ fn summary_section(s: &crate::models::SystemSummary) -> serde_json::Value {
     let mem_color = threshold_color(mem_pct, 80.0, 60.0);
     let swap_color = threshold_color(swap_pct, 80.0, 60.0);
 
+    let cpu_color = threshold_color(s.cpu_usage_percent, 80.0, 60.0);
+
     let content = format!(
         "**📊 System Summary**\n\
+         CPU:    <font color='{cpu_color}'>{:.1}%</font>\n\
          Memory: <font color='{mem_color}'>{mem_used} / {mem_total} ({mem_pct:.1}%)</font>\n\
-         Swap:   <font color='{swap_color}'>{swap_used} / {swap_total} ({swap_pct:.1}%)</font>"
+         Swap:   <font color='{swap_color}'>{swap_used} / {swap_total} ({swap_pct:.1}%)</font>",
+        s.cpu_usage_percent
     );
 
     serde_json::json!({

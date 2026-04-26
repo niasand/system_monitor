@@ -75,14 +75,46 @@ pub fn get_system_summary() -> Result<SystemSummary> {
     let (free, _active, inactive, _wired) = vm_page_counts();
     let used = total.saturating_sub((free + inactive) as u64 * page_size as u64);
     let (swap_total, swap_used) = swap_info();
+    let cpu_usage = cpu_usage_percent();
 
     Ok(SystemSummary {
-        cpu_usage_percent: 0.0,
+        cpu_usage_percent: cpu_usage,
         total_memory_bytes: total,
         used_memory_bytes: used,
         swap_total_bytes: swap_total,
         swap_used_bytes: swap_used,
     })
+}
+
+fn cpu_usage_percent() -> f64 {
+    let output = Command::new("top")
+        .args(["-l", "2", "-n", "0", "-s", "1"])
+        .output()
+        .ok();
+
+    let Some(stdout) = output.map(|o| String::from_utf8_lossy(&o.stdout).to_string()) else {
+        return 0.0;
+    };
+
+    // Take the second "CPU usage:" line (first is cumulative since boot)
+    let mut cpu_lines: Vec<&str> = stdout
+        .lines()
+        .filter(|l| l.contains("CPU usage:"))
+        .collect();
+
+    let line = cpu_lines.pop().unwrap_or("");
+    // Format: "CPU usage: 12.5% user, 8.3% sys, 79.2% idle"
+    let mut user_pct = 0.0_f64;
+    let mut sys_pct = 0.0_f64;
+    for part in line.split(',') {
+        let part = part.trim();
+        if part.ends_with("user") {
+            user_pct = part.trim_end_matches("user").trim().trim_end_matches('%').parse().unwrap_or(0.0);
+        } else if part.ends_with("sys") {
+            sys_pct = part.trim_end_matches("sys").trim().trim_end_matches('%').parse().unwrap_or(0.0);
+        }
+    }
+    user_pct + sys_pct
 }
 
 fn total_memory() -> u64 {
