@@ -184,9 +184,11 @@ fn fmt_elapsed(secs: u64) -> String {
 }
 
 fn basename(cmd: &str) -> String {
+    const MAX_LEN: usize = 70;
     let name = cmd.rsplit_once('/').map(|(_, name)| name).unwrap_or(cmd);
-    if name.len() > 70 {
-        format!("{}...", &name[..67])
+    if name.chars().count() > MAX_LEN {
+        let truncated: String = name.chars().take(MAX_LEN - 3).collect();
+        format!("{truncated}...")
     } else {
         name.to_string()
     }
