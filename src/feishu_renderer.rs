@@ -58,17 +58,16 @@ fn process_table(
     if is_cpu {
         lines.push("PID | %CPU | MEM | NAME".to_string());
     } else {
-        lines.push("PID | NAME".to_string());
+        lines.push("PID | MEM | NAME".to_string());
     }
 
     for p in processes {
         let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
         let name = basename(&p.command);
         if is_cpu {
-            let path = grey_path(&p.command);
-            lines.push(format!("{} | {:.1}% | {} | {} {}", p.pid, p.cpu_percent, mem, name, path));
+            lines.push(format!("{} | {:.1}% | {} | {}", p.pid, p.cpu_percent, mem, name));
         } else {
-            lines.push(format!("{} | {}", p.pid, name));
+            lines.push(format!("{} | {} | {}", p.pid, mem, name));
         }
     }
 
@@ -86,8 +85,7 @@ fn scripts_table(scripts: &[crate::models::ProcessInfo]) -> serde_json::Value {
         let elapsed = fmt_elapsed(p.elapsed_secs);
         let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
         let name = basename(&p.command);
-        let path = grey_path(&p.command);
-        lines.push(format!("{} | {} | {} | {} {}", p.pid, elapsed, mem, name, path));
+        lines.push(format!("{} | {} | {} | {}", p.pid, elapsed, mem, name));
     }
 
     serde_json::json!({
@@ -103,8 +101,7 @@ fn zombies_table(zombies: &[ZombieEntry]) -> serde_json::Value {
     for z in zombies {
         let parent = basename(&z.parent_command);
         let name = basename(&z.process.command);
-        let path = grey_path(&z.process.command);
-        lines.push(format!("{} | {} | {} | {} {}", z.process.pid, z.parent_pid, parent, name, path));
+        lines.push(format!("{} | {} | {} | {}", z.process.pid, z.parent_pid, parent, name));
     }
 
     serde_json::json!({
@@ -190,21 +187,3 @@ fn basename(cmd: &str) -> &str {
     cmd.rsplit_once('/').map(|(_, name)| name).unwrap_or(cmd)
 }
 
-fn grey_path(cmd: &str) -> String {
-    let dir = cmd.rsplit_once('/').map(|(dir, _)| dir).unwrap_or("");
-    if dir.is_empty() {
-        return String::new();
-    }
-    format!("<font color='grey'>{}</font>", truncate_str(dir, 50))
-}
-
-fn truncate_str(s: &str, max: usize) -> String {
-    if s.len() <= max {
-        return s.to_string();
-    }
-    let mut end = max.saturating_sub(3);
-    while !s.is_char_boundary(end) && end > 0 {
-        end -= 1;
-    }
-    format!("{}…", &s[..end])
-}
