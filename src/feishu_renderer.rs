@@ -64,11 +64,11 @@ fn process_table(
     for p in processes {
         let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
         let name = basename(&p.command);
-        let path = grey_path(&p.command);
         if is_cpu {
+            let path = grey_path(&p.command);
             lines.push(format!("{} | {:.1}% | {} | {} {}", p.pid, p.cpu_percent, mem, name, path));
         } else {
-            lines.push(format!("{} | {} {}", p.pid, name, path));
+            lines.push(format!("{} | {}", p.pid, name));
         }
     }
 

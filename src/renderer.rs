@@ -79,11 +79,11 @@ impl Renderer {
         lines.push(self.bold(title));
         lines.push("─".repeat(50));
 
-        let header = format!(
-            "{:<7} {:>6} {:>10} {}",
-            "PID", if is_cpu { "%CPU" } else { "%MEM" }, "MEM", "NAME"
-        );
-        lines.push(self.dim(&header));
+        if is_cpu {
+            lines.push(self.dim(&format!("{:<7} {:>6} {:>10} {}", "PID", "%CPU", "MEM", "NAME")));
+        } else {
+            lines.push(self.dim(&format!("{:<7} {:>10} {}", "PID", "MEM", "NAME")));
+        }
 
         if processes.is_empty() {
             lines.push(self.dim("  (none)"));
@@ -92,22 +92,21 @@ impl Renderer {
 
         for p in processes {
             let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
-            let cpu = format!("{:.1}", p.cpu_percent);
-            let value = if is_cpu { cpu } else { mem.clone() };
             let name = truncate(basename(&p.command), 70);
 
-            let cpu_colored = if p.cpu_percent > 50.0 {
-                self.red(&value)
-            } else if p.cpu_percent > 20.0 {
-                self.yellow(&value)
+            if is_cpu {
+                let cpu = format!("{:.1}", p.cpu_percent);
+                let cpu_colored = if p.cpu_percent > 50.0 {
+                    self.red(&cpu)
+                } else if p.cpu_percent > 20.0 {
+                    self.yellow(&cpu)
+                } else {
+                    cpu.clone()
+                };
+                lines.push(format!("{:<7} {:>6} {:>10} {}", p.pid, cpu_colored, mem, name));
             } else {
-                value.clone()
-            };
-
-            lines.push(format!(
-                "{:<7} {:>6} {:>10} {}",
-                p.pid, cpu_colored, mem, name
-            ));
+                lines.push(format!("{:<7} {:>10} {}", p.pid, mem, name));
+            }
         }
     }
 
