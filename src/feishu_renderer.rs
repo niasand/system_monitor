@@ -15,26 +15,18 @@ impl FeishuRenderer {
 
         elements.push(summary_section(&output.summary));
         elements.push(hr());
-        elements.push(process_section(
-            "🔥 Top CPU",
-            &output.top_cpu,
-            true,
-        ));
+        elements.push(process_table("🔥 Top CPU", &output.top_cpu, true));
         elements.push(hr());
-        elements.push(process_section(
-            "💾 Top Memory",
-            &output.top_memory,
-            false,
-        ));
+        elements.push(process_table("💾 Top Memory", &output.top_memory, false));
 
         if !output.long_scripts.is_empty() {
             elements.push(hr());
-            elements.push(scripts_section(&output.long_scripts));
+            elements.push(scripts_table(&output.long_scripts));
         }
 
         if !zombies.is_empty() {
             elements.push(hr());
-            elements.push(zombies_section(zombies));
+            elements.push(zombies_table(zombies));
         }
 
         elements.push(serde_json::json!({
@@ -55,6 +47,122 @@ impl FeishuRenderer {
         })
     }
 }
+
+// --- Table builders using Feishu card table element ---
+
+fn process_table(
+    title: &str,
+    processes: &[crate::models::ProcessInfo],
+    is_cpu: bool,
+) -> serde_json::Value {
+    let mut columns = vec![
+        col("pid", "PID"),
+        col("user", "USER"),
+    ];
+    if is_cpu {
+        columns.push(col("cpu", "%CPU"));
+    }
+    columns.push(col("mem", "MEM"));
+    columns.push(col("name", "NAME"));
+
+    let rows: Vec<serde_json::Value> = processes
+        .iter()
+        .map(|p| {
+            let mut row = serde_json::json!({
+                "pid": p.pid.to_string(),
+                "user": p.user,
+                "mem": MemoryAnalyzer::format_bytes(p.rss_bytes),
+                "name": basename(&p.command).to_string(),
+            });
+            if is_cpu {
+                row["cpu"] = serde_json::json!(format!("{:.1}", p.cpu_percent));
+            }
+            row
+        })
+        .collect();
+
+    build_table(title, &columns, &rows)
+}
+
+fn scripts_table(scripts: &[crate::models::ProcessInfo]) -> serde_json::Value {
+    let columns = vec![
+        col("pid", "PID"),
+        col("user", "USER"),
+        col("elapsed", "ELAPSED"),
+        col("mem", "MEM"),
+        col("name", "NAME"),
+    ];
+
+    let rows: Vec<serde_json::Value> = scripts
+        .iter()
+        .map(|p| {
+            serde_json::json!({
+                "pid": p.pid.to_string(),
+                "user": p.user,
+                "elapsed": fmt_elapsed(p.elapsed_secs),
+                "mem": MemoryAnalyzer::format_bytes(p.rss_bytes),
+                "name": basename(&p.command).to_string(),
+            })
+        })
+        .collect();
+
+    build_table("⏳ Long-Running Scripts (> 12h)", &columns, &rows)
+}
+
+fn zombies_table(zombies: &[ZombieEntry]) -> serde_json::Value {
+    let columns = vec![
+        col("pid", "PID"),
+        col("user", "USER"),
+        col("ppid", "PPID"),
+        col("parent", "PARENT"),
+        col("name", "NAME"),
+    ];
+
+    let rows: Vec<serde_json::Value> = zombies
+        .iter()
+        .map(|z| {
+            serde_json::json!({
+                "pid": z.process.pid.to_string(),
+                "user": z.process.user,
+                "ppid": z.parent_pid.to_string(),
+                "parent": basename(&z.parent_command).to_string(),
+                "name": basename(&z.process.command).to_string(),
+            })
+        })
+        .collect();
+
+    build_table("⚠️ Zombie Processes", &columns, &rows)
+}
+
+fn build_table(
+    title: &str,
+    columns: &[serde_json::Value],
+    rows: &[serde_json::Value],
+) -> serde_json::Value {
+    serde_json::json!({
+        "tag": "table",
+        "page_size": rows.len().min(10),
+        "row_height": "low",
+        "header": {
+            "title": { "tag": "plain_text", "content": title },
+            "template": "blue",
+            "ud_icon": { "tag": "standard_icon", "token": "myai-data_outlined" }
+        },
+        "columns": columns,
+        "rows": rows
+    })
+}
+
+fn col(name: &str, display: &str) -> serde_json::Value {
+    serde_json::json!({
+        "name": name,
+        "display_name": { "tag": "plain_text", "content": display },
+        "data_type": "text",
+        "width": "auto"
+    })
+}
+
+// --- Helpers ---
 
 fn header_template(summary: &crate::models::SystemSummary) -> &'static str {
     let mem_pct = if summary.total_memory_bytes > 0 {
@@ -102,86 +210,6 @@ fn summary_section(s: &crate::models::SystemSummary) -> serde_json::Value {
     })
 }
 
-fn process_section(
-    title: &str,
-    processes: &[crate::models::ProcessInfo],
-    is_cpu: bool,
-) -> serde_json::Value {
-    let mut lines = vec![format!("**{title}**")];
-    lines.push("```".to_string());
-    lines.push(format!(
-        "{:<7} {:<10} {:>6} {:>10}  {:<15} {}",
-        "PID", "USER", if is_cpu { "%CPU" } else { "%MEM" }, "MEM", "NAME", "COMMAND"
-    ));
-
-    for p in processes {
-        let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
-        let name = truncate_str(basename(&p.command), 15);
-        let cmd = truncate_str(&p.command, 30);
-        lines.push(format!(
-            "{:<7} {:<10} {:>6.1} {:>10}  {:<15} {}",
-            p.pid, p.user, p.cpu_percent, mem, name, cmd
-        ));
-    }
-    lines.push("```".to_string());
-
-    serde_json::json!({
-        "tag": "div",
-        "text": { "tag": "lark_md", "content": lines.join("\n") }
-    })
-}
-
-fn scripts_section(scripts: &[crate::models::ProcessInfo]) -> serde_json::Value {
-    let mut lines = vec!["**⏳ Long-Running Scripts (> 12h)**".to_string()];
-    lines.push("```".to_string());
-    lines.push(format!(
-        "{:<7} {:<10} {:>12} {:>10}  {:<15} {}",
-        "PID", "USER", "ELAPSED", "MEM", "NAME", "COMMAND"
-    ));
-
-    for p in scripts {
-        let elapsed = fmt_elapsed(p.elapsed_secs);
-        let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
-        let name = truncate_str(basename(&p.command), 15);
-        let cmd = truncate_str(&p.command, 30);
-        lines.push(format!(
-            "{:<7} {:<10} {:>12} {:>10}  {:<15} {}",
-            p.pid, p.user, elapsed, mem, name, cmd
-        ));
-    }
-    lines.push("```".to_string());
-
-    serde_json::json!({
-        "tag": "div",
-        "text": { "tag": "lark_md", "content": lines.join("\n") }
-    })
-}
-
-fn zombies_section(zombies: &[ZombieEntry]) -> serde_json::Value {
-    let mut lines = vec!["**⚠️ Zombie Processes**".to_string()];
-    lines.push("```".to_string());
-    lines.push(format!(
-        "{:<7} {:<10} {:>7} {:<15} {:<15} {}",
-        "PID", "USER", "PPID", "PARENT", "NAME", "COMMAND"
-    ));
-
-    for z in zombies {
-        let parent = truncate_str(basename(&z.parent_command), 15);
-        let name = truncate_str(basename(&z.process.command), 15);
-        let cmd = truncate_str(&z.process.command, 25);
-        lines.push(format!(
-            "{:<7} {:<10} {:>7} {:<15} {:<15} {}",
-            z.process.pid, z.process.user, z.parent_pid, parent, name, cmd
-        ));
-    }
-    lines.push("```".to_string());
-
-    serde_json::json!({
-        "tag": "div",
-        "text": { "tag": "lark_md", "content": lines.join("\n") }
-    })
-}
-
 fn hr() -> serde_json::Value {
     serde_json::json!({ "tag": "hr" })
 }
@@ -201,17 +229,6 @@ fn fmt_elapsed(secs: u64) -> String {
     } else {
         format!("{mins}m")
     }
-}
-
-fn truncate_str(s: &str, max: usize) -> String {
-    if s.len() <= max {
-        return s.to_string();
-    }
-    let mut end = max.saturating_sub(3);
-    while !s.is_char_boundary(end) && end > 0 {
-        end -= 1;
-    }
-    format!("{}…", &s[..end])
 }
 
 fn basename(cmd: &str) -> &str {
