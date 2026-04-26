@@ -110,16 +110,17 @@ fn process_section(
     let mut lines = vec![format!("**{title}**")];
     lines.push("```".to_string());
     lines.push(format!(
-        "{:<7} {:<10} {:>6} {:>10}  {}",
-        "PID", "USER", if is_cpu { "%CPU" } else { "%MEM" }, "MEM", "COMMAND"
+        "{:<7} {:<10} {:>6} {:>10}  {:<15} {}",
+        "PID", "USER", if is_cpu { "%CPU" } else { "%MEM" }, "MEM", "NAME", "COMMAND"
     ));
 
     for p in processes {
         let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
-        let cmd = truncate_str(&p.command, 25);
+        let name = truncate_str(basename(&p.command), 15);
+        let cmd = truncate_str(&p.command, 30);
         lines.push(format!(
-            "{:<7} {:<10} {:>6.1} {:>10}  {}",
-            p.pid, p.user, p.cpu_percent, mem, cmd
+            "{:<7} {:<10} {:>6.1} {:>10}  {:<15} {}",
+            p.pid, p.user, p.cpu_percent, mem, name, cmd
         ));
     }
     lines.push("```".to_string());
@@ -134,17 +135,18 @@ fn scripts_section(scripts: &[crate::models::ProcessInfo]) -> serde_json::Value 
     let mut lines = vec!["**⏳ Long-Running Scripts (> 12h)**".to_string()];
     lines.push("```".to_string());
     lines.push(format!(
-        "{:<7} {:<10} {:>12} {:>10}  {}",
-        "PID", "USER", "ELAPSED", "MEM", "COMMAND"
+        "{:<7} {:<10} {:>12} {:>10}  {:<15} {}",
+        "PID", "USER", "ELAPSED", "MEM", "NAME", "COMMAND"
     ));
 
     for p in scripts {
         let elapsed = fmt_elapsed(p.elapsed_secs);
         let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
-        let cmd = truncate_str(&p.command, 25);
+        let name = truncate_str(basename(&p.command), 15);
+        let cmd = truncate_str(&p.command, 30);
         lines.push(format!(
-            "{:<7} {:<10} {:>12} {:>10}  {}",
-            p.pid, p.user, elapsed, mem, cmd
+            "{:<7} {:<10} {:>12} {:>10}  {:<15} {}",
+            p.pid, p.user, elapsed, mem, name, cmd
         ));
     }
     lines.push("```".to_string());
@@ -159,16 +161,17 @@ fn zombies_section(zombies: &[ZombieEntry]) -> serde_json::Value {
     let mut lines = vec!["**⚠️ Zombie Processes**".to_string()];
     lines.push("```".to_string());
     lines.push(format!(
-        "{:<7} {:<10} {:>7} {:<15} {}",
-        "PID", "USER", "PPID", "PARENT", "COMMAND"
+        "{:<7} {:<10} {:>7} {:<15} {:<15} {}",
+        "PID", "USER", "PPID", "PARENT", "NAME", "COMMAND"
     ));
 
     for z in zombies {
-        let parent = truncate_str(&z.parent_command, 15);
-        let cmd = truncate_str(&z.process.command, 20);
+        let parent = truncate_str(basename(&z.parent_command), 15);
+        let name = truncate_str(basename(&z.process.command), 15);
+        let cmd = truncate_str(&z.process.command, 25);
         lines.push(format!(
-            "{:<7} {:<10} {:>7} {:<15} {}",
-            z.process.pid, z.process.user, z.parent_pid, parent, cmd
+            "{:<7} {:<10} {:>7} {:<15} {:<15} {}",
+            z.process.pid, z.process.user, z.parent_pid, parent, name, cmd
         ));
     }
     lines.push("```".to_string());
@@ -209,4 +212,8 @@ fn truncate_str(s: &str, max: usize) -> String {
         end -= 1;
     }
     format!("{}…", &s[..end])
+}
+
+fn basename(cmd: &str) -> &str {
+    cmd.rsplit_once('/').map(|(_, name)| name).unwrap_or(cmd)
 }
