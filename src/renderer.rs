@@ -94,7 +94,7 @@ impl Renderer {
             let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
             let cpu = format!("{:.1}", p.cpu_percent);
             let value = if is_cpu { cpu } else { mem.clone() };
-            let name = truncate(basename(&p.command), 20);
+            let name = truncate(basename(&p.command), 40);
 
             let cpu_colored = if p.cpu_percent > 50.0 {
                 self.red(&value)
@@ -133,7 +133,7 @@ impl Renderer {
         for p in scripts {
             let elapsed = format_elapsed(p.elapsed_secs);
             let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
-            let name = truncate(basename(&p.command), 20);
+            let name = truncate(basename(&p.command), 40);
             lines.push(format!(
                 "{:<7} {:>10} {:>12} {}",
                 p.pid, elapsed, mem, name
