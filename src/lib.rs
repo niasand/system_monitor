@@ -1,5 +1,7 @@
 pub mod collector;
 pub mod cpu_analyzer;
+pub mod feishu_notifier;
+pub mod feishu_renderer;
 pub mod memory_analyzer;
 pub mod models;
 pub mod renderer;
