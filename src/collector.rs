@@ -202,3 +202,85 @@ fn parse_size(s: &str) -> u64 {
 const CTL_HW: i32 = 6;
 const HW_MEMSIZE: i32 = 24;
 const HW_PAGESIZE: i32 = 7;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // --- parse_elapsed ---
+
+    #[test]
+    fn elapsed_mm_ss() {
+        assert_eq!(parse_elapsed("05:30"), Some(330));
+    }
+
+    #[test]
+    fn elapsed_hh_mm_ss() {
+        assert_eq!(parse_elapsed("02:30:45"), Some(9045));
+    }
+
+    #[test]
+    fn elapsed_dd_hh_mm_ss() {
+        assert_eq!(parse_elapsed("3-12:00:00"), Some(3 * 86400 + 43200));
+    }
+
+    #[test]
+    fn elapsed_zero() {
+        assert_eq!(parse_elapsed("00:00"), Some(0));
+    }
+
+    #[test]
+    fn elapsed_single_digit() {
+        assert_eq!(parse_elapsed("1:23"), Some(83));
+    }
+
+    #[test]
+    fn elapsed_with_whitespace() {
+        assert_eq!(parse_elapsed("  05:30  "), Some(330));
+    }
+
+    #[test]
+    fn elapsed_invalid_returns_none() {
+        assert_eq!(parse_elapsed("invalid"), None);
+        assert_eq!(parse_elapsed(""), None);
+    }
+
+    #[test]
+    fn elapsed_large_days() {
+        assert_eq!(parse_elapsed("30-00:00:01"), Some(30 * 86400 + 1));
+    }
+
+    // --- parse_size ---
+
+    #[test]
+    fn size_gb() {
+        assert_eq!(parse_size("2.0G"), 2_147_483_648);
+    }
+
+    #[test]
+    fn size_mb() {
+        assert_eq!(parse_size("512.0M"), 536_870_912);
+    }
+
+    #[test]
+    fn size_kb() {
+        assert_eq!(parse_size("2048K"), 2_097_152);
+    }
+
+    #[test]
+    fn size_plain_bytes() {
+        assert_eq!(parse_size("1024"), 1024);
+    }
+
+    // --- vm_stat_value ---
+
+    #[test]
+    fn vm_stat_extracts_number() {
+        assert_eq!(vm_stat_value("Pages free:         1234567.", "Pages free"), Some(1234567));
+    }
+
+    #[test]
+    fn vm_stat_wrong_prefix() {
+        assert_eq!(vm_stat_value("Pages active:  100.", "Pages free"), None);
+    }
+}
