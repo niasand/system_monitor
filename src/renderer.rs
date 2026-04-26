@@ -227,8 +227,11 @@ fn format_elapsed(secs: u64) -> String {
 
 fn truncate(s: &str, max: usize) -> String {
     if s.len() <= max {
-        s.to_string()
-    } else {
-        format!("{}…", &s[..max - 1])
+        return s.to_string();
     }
+    let mut end = max.saturating_sub(1);
+    while !s.is_char_boundary(end) && end > 0 {
+        end -= 1;
+    }
+    format!("{}…", &s[..end])
 }

@@ -201,5 +201,12 @@ fn fmt_elapsed(secs: u64) -> String {
 }
 
 fn truncate_str(s: &str, max: usize) -> String {
-    if s.len() <= max { s.to_string() } else { format!("{}…", &s[..max - 3]) }
+    if s.len() <= max {
+        return s.to_string();
+    }
+    let mut end = max.saturating_sub(3);
+    while !s.is_char_boundary(end) && end > 0 {
+        end -= 1;
+    }
+    format!("{}…", &s[..end])
 }
