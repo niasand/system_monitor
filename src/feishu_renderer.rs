@@ -183,7 +183,12 @@ fn fmt_elapsed(secs: u64) -> String {
     }
 }
 
-fn basename(cmd: &str) -> &str {
-    cmd.rsplit_once('/').map(|(_, name)| name).unwrap_or(cmd)
+fn basename(cmd: &str) -> String {
+    let name = cmd.rsplit_once('/').map(|(_, name)| name).unwrap_or(cmd);
+    if name.len() > 70 {
+        format!("{}...", &name[..67])
+    } else {
+        name.to_string()
+    }
 }
 
