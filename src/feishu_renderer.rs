@@ -56,18 +56,18 @@ fn process_table(
     let mut lines = vec![format!("**{title}**")];
 
     if is_cpu {
-        lines.push("PID | USER | %CPU | MEM | NAME".to_string());
+        lines.push("PID | %CPU | MEM | NAME".to_string());
     } else {
-        lines.push("PID | USER | NAME".to_string());
+        lines.push("PID | NAME".to_string());
     }
 
     for p in processes {
         let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
         let name = basename(&p.command);
         if is_cpu {
-            lines.push(format!("{} | {} | {:.1}% | {} | {}", p.pid, p.user, p.cpu_percent, mem, name));
+            lines.push(format!("{} | {:.1}% | {} | {}", p.pid, p.cpu_percent, mem, name));
         } else {
-            lines.push(format!("{} | {} | {}", p.pid, p.user, name));
+            lines.push(format!("{} | {}", p.pid, name));
         }
     }
 
@@ -79,13 +79,13 @@ fn process_table(
 
 fn scripts_table(scripts: &[crate::models::ProcessInfo]) -> serde_json::Value {
     let mut lines = vec!["**⏳ Long-Running Scripts (> 12h)**".to_string()];
-    lines.push("PID | USER | ELAPSED | MEM | NAME".to_string());
+    lines.push("PID | ELAPSED | MEM | NAME".to_string());
 
     for p in scripts {
         let elapsed = fmt_elapsed(p.elapsed_secs);
         let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
         let name = basename(&p.command);
-        lines.push(format!("{} | {} | {} | {} | {}", p.pid, p.user, elapsed, mem, name));
+        lines.push(format!("{} | {} | {} | {}", p.pid, elapsed, mem, name));
     }
 
     serde_json::json!({
@@ -96,12 +96,12 @@ fn scripts_table(scripts: &[crate::models::ProcessInfo]) -> serde_json::Value {
 
 fn zombies_table(zombies: &[ZombieEntry]) -> serde_json::Value {
     let mut lines = vec!["**⚠️ Zombie Processes**".to_string()];
-    lines.push("PID | USER | PPID | PARENT | NAME".to_string());
+    lines.push("PID | PPID | PARENT | NAME".to_string());
 
     for z in zombies {
         let parent = basename(&z.parent_command);
         let name = basename(&z.process.command);
-        lines.push(format!("{} | {} | {} | {} | {}", z.process.pid, z.process.user, z.parent_pid, parent, name));
+        lines.push(format!("{} | {} | {} | {}", z.process.pid, z.parent_pid, parent, name));
     }
 
     serde_json::json!({

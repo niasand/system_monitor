@@ -80,8 +80,8 @@ impl Renderer {
         lines.push("─".repeat(72));
 
         let header = format!(
-            "{:<7} {:<8} {:>6} {:>10} {:<8} {:<15} {}",
-            "PID", "USER", if is_cpu { "%CPU" } else { "%MEM" }, "MEM", "STATE", "NAME", "COMMAND"
+            "{:<7} {:>6} {:>10} {:<8} {:<15} {}",
+            "PID", if is_cpu { "%CPU" } else { "%MEM" }, "MEM", "STATE", "NAME", "COMMAND"
         );
         lines.push(self.dim(&header));
 
@@ -107,8 +107,8 @@ impl Renderer {
             };
 
             lines.push(format!(
-                "{:<7} {:<8} {:>6} {:>10} {:<8} {:<15} {}",
-                p.pid, p.user, cpu_colored, mem, state_str, name, cmd
+                "{:<7} {:>6} {:>10} {:<8} {:<15} {}",
+                p.pid, cpu_colored, mem, state_str, name, cmd
             ));
         }
     }
@@ -122,8 +122,8 @@ impl Renderer {
         lines.push("─".repeat(72));
 
         let header = format!(
-            "{:<7} {:<8} {:>10} {:>12} {:<15} {}",
-            "PID", "USER", "ELAPSED", "MEM", "NAME", "COMMAND"
+            "{:<7} {:>10} {:>12} {:<15} {}",
+            "PID", "ELAPSED", "MEM", "NAME", "COMMAND"
         );
         lines.push(self.dim(&header));
 
@@ -138,8 +138,8 @@ impl Renderer {
             let name = truncate(basename(&p.command), 15);
             let cmd = truncate(&p.command, 40);
             lines.push(format!(
-                "{:<7} {:<8} {:>10} {:>12} {:<15} {}",
-                p.pid, p.user, elapsed, mem, name, cmd
+                "{:<7} {:>10} {:>12} {:<15} {}",
+                p.pid, elapsed, mem, name, cmd
             ));
         }
     }
@@ -149,8 +149,8 @@ impl Renderer {
         lines.push("─".repeat(72));
 
         let header = format!(
-            "{:<7} {:<8} {:>7} {:<15} {:<15} {}",
-            "PID", "USER", "PPID", "PARENT", "NAME", "COMMAND"
+            "{:<7} {:>7} {:<15} {:<15} {}",
+            "PID", "PPID", "PARENT", "NAME", "COMMAND"
         );
         lines.push(self.dim(&header));
 
@@ -164,8 +164,8 @@ impl Renderer {
             let cmd = truncate(&z.process.command, 30);
             let parent = truncate(basename(&z.parent_command), 15);
             let line = format!(
-                "{:<7} {:<8} {:>7} {:<15} {:<15} {}",
-                z.process.pid, z.process.user, z.parent_pid, parent, name, cmd
+                "{:<7} {:>7} {:<15} {:<15} {}",
+                z.process.pid, z.parent_pid, parent, name, cmd
             );
             lines.push(if self.use_color {
                 "\x1b[31m".to_string() + &line + "\x1b[0m"
