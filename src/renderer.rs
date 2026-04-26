@@ -41,7 +41,7 @@ impl Renderer {
     fn render_summary(&self, lines: &mut Vec<String>, s: &SystemSummary) {
         let header = self.bold("System Summary");
         lines.push(header);
-        lines.push("─".repeat(58));
+        lines.push("─".repeat(50));
 
         let cpu_line = format_bar("CPU   ", s.cpu_usage_percent, &format!("{:.1}%", s.cpu_usage_percent));
 
@@ -77,11 +77,11 @@ impl Renderer {
         is_cpu: bool,
     ) {
         lines.push(self.bold(title));
-        lines.push("─".repeat(58));
+        lines.push("─".repeat(50));
 
         let header = format!(
-            "{:<7} {:>6} {:>10} {:<8} {}",
-            "PID", if is_cpu { "%CPU" } else { "%MEM" }, "MEM", "STATE", "COMMAND"
+            "{:<7} {:>6} {:>10} {}",
+            "PID", if is_cpu { "%CPU" } else { "%MEM" }, "MEM", "NAME"
         );
         lines.push(self.dim(&header));
 
@@ -94,8 +94,7 @@ impl Renderer {
             let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
             let cpu = format!("{:.1}", p.cpu_percent);
             let value = if is_cpu { cpu } else { mem.clone() };
-            let state_str = format!("{:?}", p.state);
-            let cmd = truncate(basename(&p.command), 25);
+            let name = truncate(basename(&p.command), 20);
 
             let cpu_colored = if p.cpu_percent > 50.0 {
                 self.red(&value)
@@ -106,8 +105,8 @@ impl Renderer {
             };
 
             lines.push(format!(
-                "{:<7} {:>6} {:>10} {:<8} {}",
-                p.pid, cpu_colored, mem, state_str, cmd
+                "{:<7} {:>6} {:>10} {}",
+                p.pid, cpu_colored, mem, name
             ));
         }
     }
@@ -118,11 +117,11 @@ impl Renderer {
         scripts: &[crate::models::ProcessInfo],
     ) {
         lines.push(self.bold("Long-Running Scripts (> 12h)"));
-        lines.push("─".repeat(58));
+        lines.push("─".repeat(50));
 
         let header = format!(
             "{:<7} {:>10} {:>12} {}",
-            "PID", "ELAPSED", "MEM", "COMMAND"
+            "PID", "ELAPSED", "MEM", "NAME"
         );
         lines.push(self.dim(&header));
 
@@ -134,21 +133,21 @@ impl Renderer {
         for p in scripts {
             let elapsed = format_elapsed(p.elapsed_secs);
             let mem = MemoryAnalyzer::format_bytes(p.rss_bytes);
-            let cmd = truncate(basename(&p.command), 25);
+            let name = truncate(basename(&p.command), 20);
             lines.push(format!(
                 "{:<7} {:>10} {:>12} {}",
-                p.pid, elapsed, mem, cmd
+                p.pid, elapsed, mem, name
             ));
         }
     }
 
     fn render_zombie_table(&self, lines: &mut Vec<String>, zombies: &[ZombieEntry]) {
         lines.push(self.bold("Zombie Processes"));
-        lines.push("─".repeat(58));
+        lines.push("─".repeat(50));
 
         let header = format!(
             "{:<7} {:>7} {:<20} {}",
-            "PID", "PPID", "PARENT", "COMMAND"
+            "PID", "PPID", "PARENT", "NAME"
         );
         lines.push(self.dim(&header));
 
@@ -159,10 +158,10 @@ impl Renderer {
 
         for z in zombies {
             let parent = truncate(basename(&z.parent_command), 20);
-            let cmd = truncate(basename(&z.process.command), 25);
+            let name = truncate(basename(&z.process.command), 20);
             let line = format!(
                 "{:<7} {:>7} {:<20} {}",
-                z.process.pid, z.parent_pid, parent, cmd
+                z.process.pid, z.parent_pid, parent, name
             );
             lines.push(if self.use_color {
                 "\x1b[31m".to_string() + &line + "\x1b[0m"

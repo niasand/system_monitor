@@ -56,9 +56,9 @@ fn process_table(
     let mut lines = vec![format!("**{title}**")];
 
     if is_cpu {
-        lines.push("PID | %CPU | MEM | COMMAND".to_string());
+        lines.push("PID | %CPU | MEM | NAME".to_string());
     } else {
-        lines.push("PID | COMMAND".to_string());
+        lines.push("PID | NAME".to_string());
     }
 
     for p in processes {
@@ -80,7 +80,7 @@ fn process_table(
 
 fn scripts_table(scripts: &[crate::models::ProcessInfo]) -> serde_json::Value {
     let mut lines = vec!["**⏳ Long-Running Scripts (> 12h)**".to_string()];
-    lines.push("PID | ELAPSED | MEM | COMMAND".to_string());
+    lines.push("PID | ELAPSED | MEM | NAME".to_string());
 
     for p in scripts {
         let elapsed = fmt_elapsed(p.elapsed_secs);
@@ -98,7 +98,7 @@ fn scripts_table(scripts: &[crate::models::ProcessInfo]) -> serde_json::Value {
 
 fn zombies_table(zombies: &[ZombieEntry]) -> serde_json::Value {
     let mut lines = vec!["**⚠️ Zombie Processes**".to_string()];
-    lines.push("PID | PPID | PARENT | COMMAND".to_string());
+    lines.push("PID | PPID | PARENT | NAME".to_string());
 
     for z in zombies {
         let parent = basename(&z.parent_command);
